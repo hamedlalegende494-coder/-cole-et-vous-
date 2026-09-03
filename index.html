@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>École & Vous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Firebase (SDK "compat") et pdf.js : seules dépendances externes, chargées en CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+:root {
+  --ink: #1F2A44;
+  --paper: #FBF9F4;
+  --amber: #C97A2B;
+  --amber-bg: #FAEEDA;
+  --sage: #4B7A5B;
+  --sage-bg: #EAF1EC;
+  --sage-bg2: #D3E3D7;
+  --brick: #B1473F;
+  --brick-bg: #F7E8E6;
+  --brick-line: #E7C9C4;
+  --line: #E3DED2;
+  --muted: #8A8579;
+  --card: #FFFFFF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #EDE9DD;
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  display: flex;
+  justify-content: center;
+  padding: 24px 12px;
+}
+
+#app { width: 100%; max-width: 380px; }
+
+.frame {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  min-height: 660px;
+}
+.frame-scroll {
+  overflow: hidden;
+  height: 660px;
+}
+
+.frame-dark { background: var(--ink); height: auto; }
+
+/* ---------- Landing ---------- */
+.landing-hero { padding: 48px 28px 32px; }
+.eyebrow { margin: 0; font-size: 13px; color: #A9B3C9; letter-spacing: 0.3px; }
+.landing-hero h1 {
+  margin: 10px 0 0; font-family: 'Fraunces', serif; font-size: 28px; line-height: 1.2;
+  color: var(--paper); font-weight: 600; max-width: 270px;
+}
+.landing-sheet {
+  background: var(--paper); border-radius: 26px 26px 0 0; padding: 28px 24px 32px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.choice-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--card); cursor: pointer; text-align: left; width: 100%;
+  font-family: inherit;
+}
+.choice-icon {
+  width: 40px; height: 40px; border-radius: 12px; background: #F3EFE4;
+  display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;
+}
+.choice-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.choice-text strong { font-size: 15px; }
+.choice-text small { font-size: 12.5px; color: var(--muted); }
+.chev { color: var(--muted); font-size: 18px; }
+
+/* ---------- Topbar / nav ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 12px; padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line); background: var(--paper); flex-shrink: 0;
+}
+.topbar-title { margin: 0; font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; }
+.topbar-sub { margin: 0; font-size: 12.5px; color: var(--muted); }
+.topbar-text { flex: 1; min-width: 0; }
+
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; font-size: 15px; color: var(--ink);
+}
+
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%; color: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 600; font-size: 14px; flex-shrink: 0;
+}
+.avatar-sm { width: 22px; height: 22px; font-size: 10px; }
+
+.enfant-switcher { display: flex; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--line); overflow-x: auto; flex-shrink: 0; }
+.chip {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px 5px 5px; border-radius: 20px;
+  border: 1px solid var(--line); background: #fff; cursor: pointer; flex-shrink: 0; font-size: 12px; color: var(--ink);
+  font-family: inherit;
+}
+.chip-active { background: #F3EFE4; border-color: var(--ink); }
+
+.scroll-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.content-pad { padding: 18px 20px 90px; }
+
+.bottom-nav {
+  display: flex; border-top: 1px solid var(--line); background: #fff; padding: 8px 4px 10px; flex-shrink: 0;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: none; background: transparent; cursor: pointer; padding: 4px 0; color: #B0AB9E; font-family: inherit;
+}
+.nav-btn.active { color: var(--ink); font-weight: 600; }
+.nav-icon { font-size: 17px; }
+.nav-label { font-size: 10px; }
+
+/* ---------- Tabs / pills ---------- */
+.tabbar { display: flex; gap: 8px; padding: 16px 20px 0; }
+.tab {
+  flex: 1; padding: 9px 0; border-radius: 10px; cursor: pointer; font-size: 13px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink); font-family: inherit;
+}
+.tab.active { border: 1.5px solid var(--ink); background: var(--ink); color: var(--paper); }
+
+.pill-row { display: flex; gap: 6px; padding: 12px 16px 0; flex-wrap: wrap; flex-shrink: 0; }
+.pill {
+  padding: 7px 12px; border-radius: 20px; border: 1px solid var(--line); background: #fff;
+  color: var(--ink); font-size: 12.5px; cursor: pointer; font-family: inherit;
+}
+.pill-active { border: 1.5px solid var(--ink); background: var(--ink); color: var(--paper); }
+
+/* ---------- Forms ---------- */
+.field-label { display: block; margin: 14px 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.field-label:first-child { margin-top: 0; }
+.hint { margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
+.input, select.input, textarea.input {
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px;
+  font-family: 'Inter', sans-serif; color: var(--ink); width: 100%; outline: none; background: #fff;
+  margin-bottom: 8px;
+}
+textarea.input { resize: none; min-height: 64px; }
+.stepper { display: flex; align-items: center; gap: 14px; margin: 6px 0 8px; }
+.stepper-value { font-size: 17px; font-weight: 600; min-width: 20px; text-align: center; }
+
+.btn-primary {
+  width: 100%; margin-top: 6px; padding: 12px; border-radius: 12px; border: none;
+  background: var(--ink); color: var(--paper); font-size: 14.5px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
+}
+.btn-ghost {
+  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff;
+  color: var(--ink); font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.btn-outline {
+  padding: 6px 12px; border-radius: 8px; border: 1px solid var(--ink); background: transparent;
+  color: var(--ink); font-size: 12.5px; cursor: pointer; font-family: inherit;
+}
+.error-text { margin: 8px 0 0; font-size: 13px; color: #8E362F; display: flex; align-items: center; gap: 6px; }
+
+/* ---------- Cards / tiles ---------- */
+.section-label { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.card {
+  padding: 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line);
+}
+.card-row { display: flex; align-items: center; gap: 12px; }
+.tile-row { display: flex; gap: 10px; }
+.tile {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line);
+  cursor: pointer; font-family: inherit; text-align: left;
+}
+.tile-num { margin: 4px 0 0; font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; }
+.tile-label { margin: 0; font-size: 11.5px; color: var(--muted); }
+
+.empty-state {
+  padding: 16px; border-radius: 12px; background: #fff; border: 1px dashed var(--line);
+  text-align: center; font-size: 13px; color: var(--muted);
+}
+.notif-success {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px;
+  background: var(--sage-bg); border: 1px solid var(--sage-bg2); font-size: 12.5px; margin-bottom: 14px;
+}
+.alerte-absence { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--brick-bg); border: 1px solid var(--brick-line); font-size: 13.5px; }
+.alerte-note { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #F3EFE4; border: 1px solid var(--line); font-size: 13.5px; }
+
+.list-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+  background: #fff; border: 1px solid var(--line); margin-bottom: 6px;
+}
+.list-item:last-child { margin-bottom: 0; }
+code.code-badge { font-size: 12px; color: var(--amber); background: var(--amber-bg); padding: 3px 8px; border-radius: 6px; }
+
+/* ---------- Calendrier présences ---------- */
+.day-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 22px; }
+.day-cell {
+  padding: 8px 4px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.day-num { font-size: 13px; font-weight: 600; }
+.day-label { font-size: 9.5px; text-align: center; line-height: 1.2; }
+.st-present { background: var(--sage-bg); color: #3A5F45; }
+.st-absent_justifie { background: #FBF1E4; color: #9A6420; }
+.st-absent_non_justifie { background: var(--brick-bg); color: #8E362F; }
+
+/* ---------- Notes ---------- */
+.matiere-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line); margin-bottom: 8px; }
+.matiere-bar { width: 60px; height: 6px; border-radius: 3px; background: #EDE9DE; overflow: hidden; }
+.matiere-bar-fill { height: 100%; }
+
+/* ---------- Import PDF ---------- */
+.import-zone {
+  display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-radius: 12px;
+  border: 1px dashed var(--line); background: #fff; cursor: pointer; margin-bottom: 16px;
+}
+.import-zone input[type="file"] { display: none; }
+
+/* ---------- Direction : grille de classes ---------- */
+.classe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+.classe-card {
+  padding: 10px; border-radius: 10px; text-align: left; border: 1px solid var(--line);
+  background: #fff; cursor: pointer; font-family: inherit;
+}
+.classe-card.active { border: 1.5px solid var(--ink); background: #F3EFE4; }
+.classe-card p { margin: 0; }
+.classe-card .nom { font-size: 13px; font-weight: 500; }
+.classe-card .compte { font-size: 11px; color: var(--muted); }
+
+/* ---------- Événements (direction) ---------- */
+.evt-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line); margin-bottom: 8px; }
+.evt-icon { width: 36px; height: 36px; border-radius: 10px; background: #F3EFE4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 12px; }
+
+/* ---------- Messages ---------- */
+.msg-thread { display: flex; flex-direction: column; height: 100%; }
+.bulle { max-width: 78%; padding: 10px 13px; border-radius: 14px; font-size: 13.5px; }
+.bulle-recu { background: #fff; border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 4px; }
+.bulle-envoye { background: var(--ink); color: var(--paper); align-self: flex-end; border-bottom-right-radius: 4px; }
+
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+  // ================================================================
+  // 1) CONFIGURATION FIREBASE — à remplacer par les clés de VOTRE
+  //    projet (gratuit, 5 minutes) :
+  //    1. https://console.firebase.google.com → créer un projet
+  //    2. "Créer une application Web" (icône </>) → copier l'objet
+  //       firebaseConfig affiché, et le coller ci-dessous.
+  //    3. Menu de gauche → "Firestore Database" → "Créer une base
+  //       de données" (les règles à copier sont dans README.md).
+  //    Ces clés ne sont PAS secrètes : elles sont publiques par
+  //    nature (visibles dans le code envoyé au navigateur). C'est le
+  //    rôle des règles Firestore de protéger réellement les données.
+  // ================================================================
+// ==================================================================
+// Configuration Firebase — à remplacer par les clés de VOTRE projet.
+//
+// Comment les obtenir (gratuit, 5 minutes) :
+// 1. Aller sur https://console.firebase.google.com et créer un projet.
+// 2. Dans le projet : "Créer une application Web" (icône </>) et lui
+//    donner un nom (ex. "ecole-et-vous").
+// 3. Firebase affiche alors un objet firebaseConfig : copiez-le ici
+//    à la place de celui ci-dessous.
+// 4. Dans le menu de gauche : "Firestore Database" → "Créer une base
+//    de données" → démarrer en mode production (les règles à copier
+//    se trouvent dans README.md).
+//
+// Ces clés ne sont PAS secrètes : elles sont publiques par nature
+// (elles se retrouvent dans le code JavaScript envoyé au navigateur).
+// C'est le rôle des règles Firestore (voir README.md) de protéger
+// réellement les données, pas ces clés.
+// ==================================================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2nOXBzU8TipCg7p2FV3NN-H7b1Nw1XAk",
+  authDomain: "ecole-et-vous.firebaseapp.com",
+  projectId: "ecole-et-vous",
+  storageBucket: "ecole-et-vous.firebasestorage.app",
+  messagingSenderId: "280691997151",
+  appId: "1:280691997151:web:1719e0e3ece3f7d90b2c6a",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+  </script>
+
+  <script>
+  // ================================================================
+  // 2) LECTURE DES PDF DANS LE NAVIGATEUR (pdf.js)
+  // ================================================================
+// ==================================================================
+// Lecture des PDF directement dans le navigateur (pdf.js), puis
+// interprétation du texte selon un format simple, une information
+// par ligne, champs séparés par des points-virgules.
+// Voir README.md pour des exemples complets.
+// ==================================================================
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/** Lit un fichier PDF (File) et renvoie tout son texte, page par page. */
+async function extraireTextePdf(file) {
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let texte = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const contenu = await page.getTextContent();
+    // pdf.js renvoie des fragments de texte positionnés individuellement ;
+    // on reconstitue des lignes en s'appuyant sur les sauts verticaux, et on
+    // réinsère un espace entre deux fragments quand un espace horizontal les
+    // sépare (sinon les mots se retrouvent collés, ex. "NOMPrénom").
+    let ligneCourante = '';
+    let dernierY = null;
+    let finX = null;
+    const finirLigne = () => {
+      if (ligneCourante.trim()) texte += ligneCourante.trim() + '\n';
+      ligneCourante = '';
+      finX = null;
+    };
+    for (const item of contenu.items) {
+      if (!item.str) { if (item.hasEOL) finirLigne(); continue; }
+      const x = item.transform[4];
+      const y = item.transform[5];
+      if (dernierY !== null && Math.abs(y - dernierY) > 2) finirLigne();
+      if (finX !== null && x - finX > 1 && !ligneCourante.endsWith(' ') && !item.str.startsWith(' ')) {
+        ligneCourante += ' ';
+      }
+      ligneCourante += item.str;
+      finX = x + (item.width || 0);
+      dernierY = y;
+      if (item.hasEOL) finirLigne();
+    }
+    finirLigne();
+  }
+  return texte;
+}
+
+function lignesUtiles(texte) {
+  return texte.split('\n').map((l) => l.trim()).filter(Boolean);
+}
+
+// Format attendu : NOM;Prénom
+function estToutMajuscule(mot) {
+  return mot === mot.toUpperCase() && mot !== mot.toLowerCase();
+}
+// Accepte deux formats : "NOM;Prénom" (point-virgule) ou "NOM Prénom" (le nom
+// étant en MAJUSCULES). Ignore automatiquement les titres et en-têtes.
+function parseListeClasse(texte) {
+  const resultat = [];
+  for (const ligne of lignesUtiles(texte)) {
+    if (/\d/.test(ligne)) continue; // ignore les lignes de titre du type "Liste des élèves de 6e"
+    if (ligne.includes(';')) {
+      const p = ligne.split(';').map((x) => x.trim());
+      if (p.length === 2 && p[0] && p[1]) resultat.push({ nom: p[0], prenom: p[1] });
+      continue;
+    }
+    const mots = ligne.split(/\s+/).filter(Boolean);
+    let i = 0;
+    while (i < mots.length && estToutMajuscule(mots[i])) i++;
+    if (i === 0 || i >= mots.length) continue; // pas de "NOM" en majuscules suivi d'un prénom
+    resultat.push({ nom: mots.slice(0, i).join(' '), prenom: mots.slice(i).join(' ') });
+  }
+  return resultat;
+}
+
+// Format attendu : NOM;Prénom;Matière;Note;Coefficient
+// Accepte deux formats : "NOM;Prénom;Matière;Note;Coefficient" (point-virgule),
+// ou un export réel "NOM Prénom Matière NoteCoefficient" (espaces, note et
+// coefficient collés, ex. "133" = note 13 / coefficient 3). Dans ce second cas,
+// le nom+prénom est retrouvé en le comparant à la liste des élèves déjà
+// importés pour la classe, ce qui permet de gérer prénoms et matières à
+// plusieurs mots (ex. "Abdoul Aziz", "Éducation civique") sans ambiguïté.
+function parseNotes(texte, eleves) {
+  const nettoye = texte.replace(/nom\s+pr[ée]nom\s+mati[èe]re\s+note\s+coefficient/gi, '\n');
+  const matches = [];
+  const nonTrouves = [];
+  for (const ligne of lignesUtiles(nettoye)) {
+    if (ligne.includes(';')) {
+      const p = ligne.split(';').map((x) => x.trim());
+      if (p.length === 5) {
+        const note = parseFloat(p[3].replace(',', '.'));
+        const coefficient = parseInt(p[4], 10);
+        if (p[0] && p[1] && p[2] && !Number.isNaN(note) && !Number.isNaN(coefficient)) {
+          const eleve = (eleves || []).find((e) => e.nom.toLowerCase() === p[0].toLowerCase() && e.prenom.toLowerCase() === p[1].toLowerCase());
+          if (eleve) matches.push({ eleveId: eleve.id, matiere: p[2], note, coefficient });
+          else nonTrouves.push(`${p[1]} ${p[0]}`);
+        }
+      }
+      continue;
+    }
+    // Note et Coefficient peuvent être collés ("133") ou séparés par un
+    // espace ("13 3") selon la façon dont le PDF d'origine a été généré.
+    // Le coefficient est toujours le tout dernier chiffre.
+    const m = ligne.match(/^(.*?)(\d+(?:[.,]\d+)?)\s*(\d)\s*$/);
+    if (!m) continue; // pas de nombre en fin de ligne (ex. en-tête) : ignorée
+    const avantNombre = m[1].trim();
+    const note = parseFloat(m[2].replace(',', '.'));
+    const coefficient = parseInt(m[3], 10);
+    if (!avantNombre || Number.isNaN(note) || Number.isNaN(coefficient)) continue;
+
+    const eleve = (eleves || []).find((e) => {
+      const prefixe = `${e.nom} ${e.prenom}`.toLowerCase();
+      const debut = avantNombre.toLowerCase();
+      return debut === prefixe || (debut.startsWith(prefixe) && debut[prefixe.length] === ' ');
+    });
+    if (!eleve) { nonTrouves.push(avantNombre); continue; }
+    const matiere = avantNombre.slice(`${eleve.nom} ${eleve.prenom}`.length).trim();
+    if (!matiere) { nonTrouves.push(avantNombre); continue; }
+    matches.push({ eleveId: eleve.id, matiere, note, coefficient });
+  }
+  return { matches, nonTrouves: [...new Set(nonTrouves)] };
+}
+
+// Idem pour les présences : "NOM;Prénom;Jour;Statut;Motif" (point-virgule) ou
+// "NOM Prénom Jour Statut Motif" (espaces), avec la même recherche par élève.
+const STATUTS_VALIDES = ['present', 'absent_justifie', 'absent_non_justifie'];
+function parsePresences(texte, eleves) {
+  const nettoye = texte.replace(/nom\s+pr[ée]nom\s+jour\s+statut(\s+motif)?/gi, '\n');
+  const matches = [];
+  const nonTrouves = [];
+  for (const ligne of lignesUtiles(nettoye)) {
+    if (ligne.includes(';')) {
+      const p = ligne.split(';').map((x) => x.trim());
+      if (p.length >= 4) {
+        const [nom, prenom, jour, statutBrut, motif] = p;
+        const statut = (statutBrut || '').toLowerCase();
+        if (nom && prenom && jour && STATUTS_VALIDES.includes(statut)) {
+          const eleve = (eleves || []).find((e) => e.nom.toLowerCase() === nom.toLowerCase() && e.prenom.toLowerCase() === prenom.toLowerCase());
+          if (eleve) matches.push({ eleveId: eleve.id, jour, statut, motif: motif || null });
+          else nonTrouves.push(`${prenom} ${nom}`);
+        }
+      }
+      continue;
+    }
+
+    const eleve = (eleves || []).find((e) => {
+      const prefixe = `${e.nom} ${e.prenom}`.toLowerCase();
+      const debut = ligne.toLowerCase();
+      return debut.startsWith(prefixe) && (debut.length === prefixe.length || debut[prefixe.length] === ' ');
+    });
+    if (!eleve) continue;
+    const reste = ligne.slice(`${eleve.nom} ${eleve.prenom}`.length).trim();
+    const m = reste.match(/^(\d+)\s*(present|absent_justifie|absent_non_justifie)\b\s*(.*)$/i);
+    if (!m) { nonTrouves.push(`${eleve.prenom} ${eleve.nom}`); continue; }
+    matches.push({ eleveId: eleve.id, jour: m[1], statut: m[2].toLowerCase(), motif: m[3] ? m[3].trim() : null });
+  }
+  return { matches, nonTrouves: [...new Set(nonTrouves)] };
+}
+
+  </script>
+
+  <script>
+  // ================================================================
+  // 3) APPLICATION (rendu des écrans + logique + Firestore)
+  // ================================================================
+// ==================================================================
+// École & Vous — site 100% statique (HTML/CSS/JS), hébergeable tel
+// quel sur GitHub Pages. Les données sont stockées dans Firestore
+// (voir firebase-config.js) et les PDF sont lus dans le navigateur
+// (voir pdfParser.js). Aucun serveur à héberger.
+// ==================================================================
+
+const NIVEAUX = ['6e', '5e', '4e', '3e', '2nde', '1ère', 'Term.'];
+const SECTIONS = ['A', 'B'];
+const CLASSES_LISTE = NIVEAUX.flatMap((n) => SECTIONS.map((s) => ({ id: `${n}-${s}`, label: `${n} ${s}` })));
+
+const EVENT_TYPES = [
+  { id: 'devoir', label: 'Devoir surveillé' },
+  { id: 'reunion', label: 'Réunion parents-professeurs' },
+  { id: 'pedagogique', label: 'Journée pédagogique' },
+  { id: 'paiement', label: 'Paiement des frais' },
+  { id: 'sortie', label: 'Sortie scolaire' },
+];
+const EVENT_ICONS = { devoir: '🎓', reunion: '👪', pedagogique: '🗓️', paiement: '💳', sortie: '🚌' };
+
+const NAV_LABELS = { accueil: 'Accueil', presences: 'Présences', notes: 'Notes', agenda: 'Agenda', messages: 'Messages' };
+const NAV_ICONS = { accueil: '🏠', presences: '✅', notes: '🎓', agenda: '🗓️', messages: '💬' };
+const DIRECTION_LABELS = { classes: 'Classes', notes: 'Notes', presences: 'Présences', evenements: 'Événements' };
+
+const PALETTE = ['#4B7A5B', '#C97A2B', '#5A6FA8', '#A0527A', '#7A8A3E'];
+
+// ---------- État global (persiste tant que la page reste ouverte) ----------
+const state = {
+  screen: 'landing', // landing | parent-auth | parent-app | direction
+  authMode: 'inscription',
+  authError: null,
+  nbEnfants: 1,
+  formCache: {},
+
+  parent: null,
+  enfantIndex: 0,
+  parentTab: 'accueil',
+  parentData: { notes: {}, presences: null, evenements: [], periode: 'T3', justifyingId: null, confirmedEvents: new Set() },
+
+  direction: {
+    dTab: 'classes',
+    classes: [],
+    classeId: CLASSES_LISTE[0].id,
+    eleves: [],
+    periode: 'T3',
+    mois: 'Septembre 2026',
+    notesSummary: [],
+    presencesSummary: [],
+    evenements: [],
+    importing: false,
+    notif: '',
+  },
+};
+
+const $app = document.getElementById('app');
+
+// ---------- Utilitaires ----------
+function initiales(prenom, nom) { return `${prenom[0]}${nom[0]}`.toUpperCase(); }
+function couleurEnfant(i) { return PALETTE[i % PALETTE.length]; }
+function moyennePonderee(matieres) {
+  if (!matieres || matieres.length === 0) return null;
+  const somme = matieres.reduce((s, m) => s + m.note * m.coef, 0);
+  const coefs = matieres.reduce((s, m) => s + m.coef, 0);
+  return coefs ? somme / coefs : null;
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function normTel(t) { return (t || '').replace(/\s+/g, ''); }
+function sansAccents(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+function syncFormCache() {
+  $app.querySelectorAll('input, textarea, select').forEach((el) => {
+    if (!el.id) return;
+    state.formCache[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+}
+function fc(id, dflt = '') { return state.formCache[id] !== undefined ? state.formCache[id] : dflt; }
+
+/** Enrobe un appel Firestore pour renvoyer {ok, data} ou {ok:false, erreur}. */
+async function essayer(fn, msgErreurDefaut = "Une erreur est survenue lors de l'accès à la base de données.") {
+  try {
+    return { ok: true, data: await fn() };
+  } catch (e) {
+    console.error(e);
+    let msg;
+    if (e && e.code === 'permission-denied') msg = "Accès refusé par les règles Firestore. Vérifiez la configuration (voir README.md).";
+    else if (e && typeof e.code === 'string' && e.code.startsWith('auth/')) msg = messageErreurAuth(e);
+    else msg = e.message || msgErreurDefaut;
+    return { ok: false, erreur: msg };
+  }
+}
+
+// ---------- Accès aux données (Firestore) ----------
+async function chargerTousLesEleves() {
+  const snap = await db.collection('eleves').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+async function chargerClassesAvecCompteurs() {
+  const tous = await chargerTousLesEleves();
+  state.direction._tousEleves = tous;
+  state.direction.classes = CLASSES_LISTE.map((c) => ({ ...c, nbEleves: tous.filter((e) => e.classeId === c.id).length }));
+}
+async function chargerElevesClasse(classeId) {
+  const snap = await db.collection('eleves').where('classeId', '==', classeId).get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.nom.localeCompare(b.nom));
+}
+function genererCode(nom, codesUtilises) {
+  const base = sansAccents(nom).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'ELV';
+  let code;
+  do { code = `${base}-${Math.floor(1000 + Math.random() * 9000)}`; } while (codesUtilises.has(code));
+  codesUtilises.add(code);
+  return code;
+}
+
+async function chargerNotesEleve(eleveId) {
+  const snap = await db.collection('notes').where('eleveId', '==', eleveId).get();
+  const parTrimestre = {};
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    parTrimestre[data.trimestre] = { matieres: data.matieres, rang: data.rang ?? null, totalClasse: data.totalClasse ?? null };
+  });
+  return parTrimestre;
+}
+async function chargerNotesClasse(classeId, trimestre, elevesClasse) {
+  const eleves = elevesClasse || (await chargerElevesClasse(classeId));
+  return Promise.all(eleves.map(async (e) => {
+    const doc = await db.collection('notes').doc(`${e.id}_${trimestre}`).get();
+    const matieres = doc.exists ? doc.data().matieres : null;
+    return { id: e.id, nom: e.nom, prenom: e.prenom, moyenne: matieres ? moyennePonderee(matieres) : null };
+  }));
+}
+
+function tauxDe(jours) {
+  if (!jours || jours.length === 0) return null;
+  return Math.round((jours.filter((j) => j.statut === 'present').length / jours.length) * 100);
+}
+async function chargerDernierePresence(eleveId) {
+  const snap = await db.collection('presences').where('eleveId', '==', eleveId).get();
+  if (snap.empty) return null;
+  let latest = null;
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    if (!latest || (data.maj || 0) > (latest.maj || 0)) latest = data;
+  });
+  return { mois: latest.mois, taux: tauxDe(latest.jours), jours: latest.jours };
+}
+async function chargerPresencesClasse(classeId, mois, elevesClasse) {
+  const eleves = elevesClasse || (await chargerElevesClasse(classeId));
+  return Promise.all(eleves.map(async (e) => {
+    const doc = await db.collection('presences').doc(`${e.id}_${mois}`).get();
+    const jours = doc.exists ? doc.data().jours : null;
+    return { id: e.id, nom: e.nom, prenom: e.prenom, taux: jours ? tauxDe(jours) : null };
+  }));
+}
+async function justifierAbsence(eleveId, mois, jourCle, motif) {
+  const ref = db.collection('presences').doc(`${eleveId}_${mois}`);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error('Absence introuvable.');
+  const jours = doc.data().jours.map((j) =>
+    j.jour === jourCle && j.statut === 'absent_non_justifie' ? { ...j, statut: 'absent_justifie', motif } : j
+  );
+  await ref.update({ jours });
+}
+
+async function chargerEvenements() {
+  const snap = await db.collection('evenements').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.creeLe || 0) - (b.creeLe || 0));
+}
+async function ajouterEvenementDb(evt) {
+  await db.collection('evenements').add({ ...evt, confirmedBy: [], creeLe: Date.now() });
+}
+async function supprimerEvenementDb(id) { await db.collection('evenements').doc(id).delete(); }
+async function confirmerEvenementDb(id, parentId) {
+  await db.collection('evenements').doc(id).update({ confirmedBy: firebase.firestore.FieldValue.arrayUnion(parentId) });
+}
+
+function classeDeEnfant(eleve) { return CLASSES_LISTE.find((c) => c.id === eleve.classeId); }
+
+async function resoudreEnfants(enfantIds) {
+  return Promise.all((enfantIds || []).map(async (id) => {
+    const eDoc = await db.collection('eleves').doc(id).get();
+    const e = eDoc.data();
+    return { id, nom: e.nom, prenom: e.prenom, classe_id: e.classeId, classe: classeDeEnfant(e)?.label };
+  }));
+}
+
+// ---------- Authentification (Firebase Auth) ----------
+// Les parents s'identifient avec leur numéro de téléphone ; en interne,
+// Firebase Auth a besoin d'un e-mail, donc on en fabrique un automatiquement
+// à partir du téléphone (invisible pour l'utilisateur).
+function telVersEmailInterne(tel) {
+  const chiffres = (tel || '').replace(/\D/g, '');
+  return `${chiffres}@parents.ecole-et-vous.local`;
+}
+async function inscrireParentAuth(motDePasse, nom, prenom, telephone, codes) {
+  // Il faut être authentifié pour lire la collection "eleves" (règles
+  // Firestore) : on crée donc le compte d'abord, puis on vérifie les codes.
+  // Si un code est invalide, on supprime le compte tout juste créé.
+  const emailInterne = telVersEmailInterne(telephone);
+  const credentiel = await auth.createUserWithEmailAndPassword(emailInterne, motDePasse);
+  const uid = credentiel.user.uid;
+  try {
+    const tous = await chargerTousLesEleves();
+    const eleves = [];
+    for (const code of codes) {
+      const trouve = tous.find((e) => e.code.toLowerCase() === code.trim().toLowerCase());
+      if (!trouve) throw new Error(`Aucun élève ne correspond au code « ${code} ».`);
+      eleves.push(trouve);
+    }
+    const enfantIds = eleves.map((e) => e.id);
+    await db.collection('parents').doc(uid).set({ nom, prenom, telephone: normTel(telephone), enfantIds });
+    return {
+      id: uid, nom, prenom, telephone: normTel(telephone),
+      enfants: eleves.map((e) => ({ id: e.id, nom: e.nom, prenom: e.prenom, classe_id: e.classeId, classe: classeDeEnfant(e)?.label })),
+    };
+  } catch (e) {
+    await credentiel.user.delete().catch(() => {});
+    throw e;
+  }
+}
+async function connecterParentAuth(telephone, motDePasse) {
+  const emailInterne = telVersEmailInterne(telephone);
+  const credentiel = await auth.signInWithEmailAndPassword(emailInterne, motDePasse);
+  const uid = credentiel.user.uid;
+  const doc = await db.collection('parents').doc(uid).get();
+  if (!doc.exists) throw new Error("Ce compte n'est pas rattaché à un profil parent.");
+  const data = doc.data();
+  const enfants = await resoudreEnfants(data.enfantIds);
+  return { id: uid, nom: data.nom, prenom: data.prenom, telephone: data.telephone, enfants };
+}
+async function connecterDirectionAuth(email, motDePasse) {
+  const credentiel = await auth.signInWithEmailAndPassword(email.trim(), motDePasse);
+  return credentiel.user;
+}
+function messageErreurAuth(e) {
+  const map = {
+    'auth/email-already-in-use': 'Un compte existe déjà avec cet e-mail.',
+    'auth/invalid-email': "Adresse e-mail invalide.",
+    'auth/weak-password': 'Le mot de passe doit contenir au moins 6 caractères.',
+    'auth/wrong-password': 'Mot de passe incorrect.',
+    'auth/user-not-found': 'Aucun compte trouvé avec cet e-mail.',
+    'auth/invalid-credential': 'E-mail ou mot de passe incorrect.',
+    'auth/too-many-requests': 'Trop de tentatives. Réessayez dans quelques minutes.',
+  };
+  return map[e?.code] || e.message || 'Erreur d\'authentification.';
+}
+
+// ---------- Rendu racine ----------
+function render() { $app.innerHTML = screenHTML(); }
+function screenHTML() {
+  if (state.screen === 'landing') return landingHTML();
+  if (state.screen === 'parent-auth') return parentAuthHTML();
+  if (state.screen === 'parent-app') return parentAppHTML();
+  if (state.screen === 'direction-auth') return directionAuthHTML();
+  if (state.screen === 'direction') return directionHTML();
+  return '';
+}
+
+// ---------- Landing ----------
+function landingHTML() {
+  return `
+  <div class="frame frame-dark">
+    <div class="landing-hero">
+      <p class="eyebrow">École &amp; Vous</p>
+      <h1>La scolarité du collège au lycée, suivie de près</h1>
+    </div>
+    <div class="landing-sheet">
+      <button class="choice-card" data-action="goto" data-screen="parent-auth">
+        <span class="choice-icon">👪</span>
+        <span class="choice-text"><strong>Espace parent</strong><small>Suivre la scolarité de votre enfant</small></span>
+        <span class="chev">›</span>
+      </button>
+      <button class="choice-card" data-action="goto" data-screen="direction-auth">
+        <span class="choice-icon">🏫</span>
+        <span class="choice-text"><strong>Espace direction</strong><small>Importer classes, notes et présences</small></span>
+        <span class="chev">›</span>
+      </button>
+    </div>
+  </div>`;
+}
+
+// ---------- Espace parent : inscription / connexion ----------
+function parentAuthHTML() {
+  const isIns = state.authMode === 'inscription';
+  return `
+  <div class="frame">
+    <div class="topbar">
+      <button class="icon-btn" data-action="goto" data-screen="landing">‹</button>
+      <p class="topbar-title">Espace parent</p>
+    </div>
+    <div class="tabbar">
+      <button class="tab ${isIns ? 'active' : ''}" data-action="setAuthMode" data-mode="inscription">Créer un compte</button>
+      <button class="tab ${!isIns ? 'active' : ''}" data-action="setAuthMode" data-mode="connexion">Se connecter</button>
+    </div>
+    <div class="content-pad">
+      ${isIns ? inscriptionFormHTML() : connexionFormHTML()}
+      ${state.authError ? `<p class="error-text">⚠ ${escapeHtml(state.authError)}</p>` : ''}
+    </div>
+  </div>`;
+}
+function inscriptionFormHTML() {
+  let codes = '';
+  for (let i = 0; i < state.nbEnfants; i++) {
+    codes += `<input class="input" id="code-${i}" value="${escapeHtml(fc(`code-${i}`))}" placeholder="Code de l'enfant ${i + 1} — ex. NGU-4821" />`;
+  }
+  return `
+    <label class="field-label">Nom</label>
+    <input class="input" id="parNom" value="${escapeHtml(fc('parNom'))}" placeholder="Nguyễn" />
+    <label class="field-label">Prénom</label>
+    <input class="input" id="parPrenom" value="${escapeHtml(fc('parPrenom'))}" placeholder="Minh" />
+    <label class="field-label">Numéro de téléphone</label>
+    <input class="input" id="parTelephone" value="${escapeHtml(fc('parTelephone'))}" placeholder="06 12 34 56 78" />
+    <label class="field-label">Mot de passe</label>
+    <input class="input" id="parMotDePasse" type="password" value="${escapeHtml(fc('parMotDePasse'))}" placeholder="6 caractères minimum" />
+    <label class="field-label">Nombre d'enfants inscrits à l'établissement</label>
+    <div class="stepper">
+      <button class="icon-btn" data-action="nbEnfants" data-delta="-1">−</button>
+      <span class="stepper-value">${state.nbEnfants}</span>
+      <button class="icon-btn" data-action="nbEnfants" data-delta="1">+</button>
+    </div>
+    <label class="field-label">Code de liaison de chaque enfant</label>
+    <p class="hint">Ce code vous a été transmis par l'établissement.</p>
+    ${codes}
+    <button class="btn-primary" data-action="submitInscription">Créer mon compte</button>
+  `;
+}
+function connexionFormHTML() {
+  return `
+    <label class="field-label">Numéro de téléphone</label>
+    <input class="input" id="parTelephoneConnexion" value="${escapeHtml(fc('parTelephoneConnexion'))}" placeholder="06 12 34 56 78" />
+    <label class="field-label">Mot de passe</label>
+    <input class="input" id="parMotDePasseConnexion" type="password" value="${escapeHtml(fc('parMotDePasseConnexion'))}" placeholder="Votre mot de passe" />
+    <button class="btn-primary" data-action="submitConnexion">Se connecter</button>
+  `;
+}
+
+// ---------- Espace direction : connexion ----------
+function directionAuthHTML() {
+  return `
+  <div class="frame">
+    <div class="topbar">
+      <button class="icon-btn" data-action="goto" data-screen="landing">‹</button>
+      <p class="topbar-title">Espace direction</p>
+    </div>
+    <div class="content-pad">
+      <p class="hint" style="margin-top:0">Réservé aux comptes créés par l'établissement (voir README.md pour créer ce compte dans Firebase).</p>
+      <label class="field-label">Adresse e-mail</label>
+      <input class="input" id="dirEmail" type="email" value="${escapeHtml(fc('dirEmail'))}" placeholder="direction@ecole.fr" />
+      <label class="field-label">Mot de passe</label>
+      <input class="input" id="dirMotDePasse" type="password" value="${escapeHtml(fc('dirMotDePasse'))}" placeholder="Votre mot de passe" />
+      ${state.authError ? `<p class="error-text">⚠ ${escapeHtml(state.authError)}</p>` : ''}
+      <button class="btn-primary" data-action="submitConnexionDirection">Se connecter</button>
+    </div>
+  </div>`;
+}
+
+// ---------- Espace parent : application ----------
+function parentAppHTML() {
+  const enfant = state.parent.enfants[state.enfantIndex];
+  const chips = state.parent.enfants.length > 1 ? `
+    <div class="enfant-switcher">
+      ${state.parent.enfants.map((e, i) => `
+        <button class="chip ${i === state.enfantIndex ? 'chip-active' : ''}" data-action="switchEnfant" data-index="${i}">
+          <span class="avatar avatar-sm" style="background:${couleurEnfant(i)}">${initiales(e.prenom, e.nom)}</span>
+          <span>${escapeHtml(e.prenom)}</span>
+        </button>`).join('')}
+    </div>` : '';
+
+  return `
+  <div class="frame frame-scroll">
+    <div class="topbar">
+      <button class="icon-btn" data-action="quitParent">‹</button>
+      <span class="avatar" style="background:${couleurEnfant(state.enfantIndex)}">${initiales(enfant.prenom, enfant.nom)}</span>
+      <div class="topbar-text">
+        <p class="topbar-title">${escapeHtml(enfant.prenom)} ${escapeHtml(enfant.nom)}</p>
+        <p class="topbar-sub">${escapeHtml(enfant.classe || '')}</p>
+      </div>
+    </div>
+    ${chips}
+    <div class="scroll-area">${parentTabContentHTML(enfant)}</div>
+    <div class="bottom-nav">
+      ${['accueil', 'presences', 'notes', 'agenda', 'messages'].map((t) => `
+        <button class="nav-btn ${state.parentTab === t ? 'active' : ''}" data-action="parentTab" data-tab="${t}">
+          <span class="nav-icon">${NAV_ICONS[t]}</span><span class="nav-label">${NAV_LABELS[t]}</span>
+        </button>`).join('')}
+    </div>
+  </div>`;
+}
+function parentTabContentHTML(enfant) {
+  if (state.parentTab === 'accueil') return accueilHTML(enfant);
+  if (state.parentTab === 'presences') return presencesHTML();
+  if (state.parentTab === 'notes') return notesHTML(enfant);
+  if (state.parentTab === 'agenda') return agendaHTML();
+  if (state.parentTab === 'messages') return messagesHTML();
+  return '';
+}
+
+function accueilHTML(enfant) {
+  const pd = state.parentData;
+  const trimestreRecent = pd.notes.T3 ? 'T3' : pd.notes.T2 ? 'T2' : pd.notes.T1 ? 'T1' : null;
+  const moyenne = trimestreRecent ? moyennePonderee(pd.notes[trimestreRecent].matieres) : null;
+  const absenceNonJust = pd.presences?.jours.find((j) => j.statut === 'absent_non_justifie');
+  const prochainEvt = pd.evenements[0];
+
+  return `
+    <div class="content-pad">
+      <p style="margin:0;font-size:13px;color:var(--muted)">Bonjour</p>
+      <h2 style="margin:2px 0 18px;font-family:'Fraunces',serif;font-size:20px;font-weight:600">Voici l'essentiel pour ${escapeHtml(enfant.prenom)}</h2>
+
+      ${absenceNonJust ? `<div class="alerte-absence" style="margin-bottom:8px">⚠ Absence non justifiée le ${absenceNonJust.jour} ${escapeHtml(pd.presences.mois)}</div>` : ''}
+      ${trimestreRecent ? `<div class="alerte-note" style="margin-bottom:8px">🔔 Notes ${trimestreRecent} publiées par la direction</div>` : ''}
+
+      <div class="tile-row" style="margin-top:10px">
+        <button class="tile" data-action="parentTab" data-tab="presences">
+          <span>✅</span>
+          <p class="tile-num">${pd.presences ? pd.presences.taux + '%' : '—'}</p>
+          <p class="tile-label">Présence${pd.presences ? ' — ' + escapeHtml(pd.presences.mois) : ' — non importée'}</p>
+        </button>
+        <button class="tile" data-action="parentTab" data-tab="notes">
+          <span>🎓</span>
+          <p class="tile-num">${moyenne !== null ? moyenne.toFixed(1) + '/20' : '—'}</p>
+          <p class="tile-label">Moyenne${trimestreRecent ? ' ' + trimestreRecent : ' — non importée'}</p>
+        </button>
+      </div>
+
+      ${absenceNonJust ? `
+        <button class="card card-row" data-action="parentTab" data-tab="presences" style="width:100%;margin-top:14px;cursor:pointer;text-align:left;font-family:inherit">
+          <span>✕</span>
+          <div style="flex:1"><p style="margin:0;font-size:13.5px;font-weight:500">Absence à justifier</p><p style="margin:0;font-size:12px;color:var(--muted)">Le ${absenceNonJust.jour} ${escapeHtml(pd.presences.mois)}</p></div>
+          <span class="chev">›</span>
+        </button>` : ''}
+
+      <p class="section-label" style="margin-top:18px">Prochain événement</p>
+      ${prochainEvt ? `
+        <button class="card card-row" data-action="parentTab" data-tab="agenda" style="width:100%;cursor:pointer;text-align:left;font-family:inherit">
+          <span>${EVENT_ICONS[prochainEvt.type] || '🗓️'}</span>
+          <div style="flex:1"><p style="margin:0;font-size:13.5px;font-weight:500">${escapeHtml(prochainEvt.titre)}</p><p style="margin:0;font-size:12px;color:var(--muted)">${escapeHtml(prochainEvt.date)} · ${escapeHtml(prochainEvt.heure)}</p></div>
+          <span class="chev">›</span>
+        </button>` : `<div class="empty-state">Aucun événement programmé pour le moment.</div>`}
+
+      <p class="section-label" style="margin-top:18px">Messages</p>
+      <div class="empty-state">La messagerie n'est pas encore disponible dans cette version.</div>
+    </div>`;
+}
+
+function presencesHTML() {
+  const p = state.parentData.presences;
+  if (!p) return `<div class="content-pad"><div class="empty-state">La direction n'a pas encore importé les présences pour cette classe.</div></div>`;
+
+  const nonJustifiees = p.jours.filter((j) => j.statut === 'absent_non_justifie');
+  const jid = state.parentData.justifyingId;
+
+  const grille = p.jours.map((j) => `
+    <div class="day-cell st-${j.statut}">
+      <span class="day-num">${j.jour}</span>
+      <span class="day-label">${j.statut === 'present' ? 'Présent' : j.statut === 'absent_justifie' ? 'Justifiée' : 'À justifier'}</span>
+    </div>`).join('');
+
+  const absencesHtml = nonJustifiees.map((j) => `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;${jid === j.jour ? 'margin-bottom:12px' : ''}">
+        <span>✕</span>
+        <p style="margin:0;font-size:13.5px;flex:1">Absence du ${j.jour} ${escapeHtml(p.mois)}</p>
+        ${jid !== j.jour ? `<button class="btn-outline" data-action="justifierOuvrir" data-jour="${j.jour}">Justifier</button>` : ''}
+      </div>
+      ${jid === j.jour ? `
+        <textarea class="input" id="motifTexte" placeholder="Motif de l'absence (rendez-vous médical, maladie...)">${escapeHtml(fc('motifTexte'))}</textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" style="flex:1" data-action="justifierAnnuler">Annuler</button>
+          <button class="btn-primary" style="flex:1;margin-top:0" data-action="justifierEnvoyer" data-jour="${j.jour}">Envoyer au responsable</button>
+        </div>` : ''}
+    </div>`).join('');
+
+  return `
+    <div class="content-pad">
+      <p class="section-label">${escapeHtml(p.mois)}</p>
+      <div class="card card-row" style="margin-bottom:18px">
+        <p style="margin:0;font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--sage)">${p.taux}%</p>
+        <p style="margin:0;font-size:13px;color:var(--muted)">Taux de présence mensuel</p>
+      </div>
+      <p class="section-label">Calendrier</p>
+      <div class="day-grid">${grille}</div>
+      ${nonJustifiees.length > 0 ? `<p class="section-label">Absences à justifier</p>${absencesHtml}` : ''}
+    </div>`;
+}
+
+function notesHTML(enfant) {
+  const pd = state.parentData;
+  const donnees = pd.notes[pd.periode];
+  const matieres = donnees?.matieres;
+  const moyenne = matieres ? moyennePonderee(matieres) : null;
+  const rang = donnees?.rang ? `${donnees.rang}e / ${donnees.totalClasse}` : null;
+  const pills = ['T1', 'T2', 'T3'].map((p) => `<button class="pill ${pd.periode === p ? 'pill-active' : ''}" style="flex:1;text-align:center" data-action="setPeriodeParent" data-p="${p}">${p}</button>`).join('');
+
+  const corps = !matieres ? `<div class="empty-state">La direction n'a pas encore importé les notes du ${pd.periode}.</div>` : `
+    <div class="tile-row" style="margin-bottom:20px">
+      <div class="tile" style="cursor:default"><p class="tile-label">Moyenne générale</p><p class="tile-num">${moyenne.toFixed(1)}/20</p></div>
+      <div class="tile" style="cursor:default"><p class="tile-label">Rang dans la classe</p><p class="tile-num">${rang || '—'}</p></div>
+    </div>
+    <p class="section-label">Résultats par matière</p>
+    ${matieres.map((m) => `
+      <div class="matiere-row">
+        <div style="flex:1"><p style="margin:0;font-size:13.5px;font-weight:500">${escapeHtml(m.matiere)}</p><p style="margin:0;font-size:11.5px;color:var(--muted)">Coefficient ${m.coef}</p></div>
+        <div class="matiere-bar"><div class="matiere-bar-fill" style="width:${(m.note / 20) * 100}%;background:${m.note >= 14 ? 'var(--sage)' : m.note >= 10 ? 'var(--amber)' : 'var(--brick)'}"></div></div>
+        <p style="margin:0;font-size:14px;font-weight:600;min-width:44px;text-align:right">${m.note}/20</p>
+      </div>`).join('')}
+  `;
+
+  return `<div class="content-pad">
+    <div style="display:flex;gap:8px;margin-bottom:18px">${pills}</div>
+    ${corps}
+  </div>`;
+}
+
+function agendaHTML() {
+  const evts = state.parentData.evenements;
+  if (evts.length === 0) return `<div class="content-pad"><div class="empty-state">Aucun événement programmé pour le moment.</div></div>`;
+  const confirmes = state.parentData.confirmedEvents;
+  return `<div class="content-pad">
+    <p class="section-label">Calendrier scolaire et activités à venir</p>
+    ${evts.map((e) => `
+      <div class="evt-row" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div class="evt-icon">${EVENT_ICONS[e.type] || '🗓️'}</div>
+          <div style="flex:1"><p style="margin:0;font-size:13.5px;font-weight:500">${escapeHtml(e.titre)}</p><p style="margin:0;font-size:12px;color:var(--muted)">${escapeHtml(e.date)} · ${escapeHtml(e.heure)}</p></div>
+        </div>
+        ${e.confirmable ? (confirmes.has(e.id)
+          ? `<div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#3A5F45">✓ Présence confirmée</div>`
+          : `<button class="btn-outline" style="align-self:flex-start" data-action="confirmerEvenement" data-id="${e.id}">Confirmer ma présence</button>`) : ''}
+      </div>`).join('')}
+  </div>`;
+}
+function messagesHTML() {
+  return `<div class="content-pad"><div class="empty-state">Vous n'avez pas encore de messages.</div></div>`;
+}
+
+// ---------- Espace direction ----------
+function directionHTML() {
+  const d = state.direction;
+  return `
+  <div class="frame frame-scroll">
+    <div class="topbar">
+      <button class="icon-btn" data-action="quitDirection">‹</button>
+      <p class="topbar-title">Espace direction</p>
+    </div>
+    <div class="pill-row">
+      ${['classes', 'notes', 'presences', 'evenements'].map((t) => `<button class="pill ${d.dTab === t ? 'pill-active' : ''}" data-action="setDTab" data-tab="${t}">${DIRECTION_LABELS[t]}</button>`).join('')}
+    </div>
+    <div class="scroll-area content-pad">
+      ${d.notif ? `<div class="notif-success">✓ ${escapeHtml(d.notif)}</div>` : ''}
+      ${d.dTab === 'classes' ? classesTabHTML() : ''}
+      ${d.dTab === 'notes' ? notesTabHTML() : ''}
+      ${d.dTab === 'presences' ? presencesTabHTML() : ''}
+      ${d.dTab === 'evenements' ? evenementsTabHTML() : ''}
+    </div>
+  </div>`;
+}
+
+function classesTabHTML() {
+  const d = state.direction;
+  const grille = CLASSES_LISTE.map((c) => {
+    const info = d.classes.find((x) => x.id === c.id);
+    return `<button class="classe-card ${d.classeId === c.id ? 'active' : ''}" data-action="selectClasse" data-id="${c.id}">
+      <p class="nom">${c.label}</p><p class="compte">${info ? info.nbEleves : 0} élève(s)</p>
+    </button>`;
+  }).join('');
+
+  const eleves = d.eleves.map((e) => `
+    <div class="list-item">
+      <span>👤</span>
+      <p style="margin:0;font-size:13px;flex:1">${escapeHtml(e.prenom)} ${escapeHtml(e.nom)}</p>
+      <code class="code-badge">${escapeHtml(e.code)}</code>
+    </div>`).join('');
+
+  return `
+    <p class="section-label">Sélectionner une classe</p>
+    <div class="classe-grid">${grille}</div>
+    <p class="section-label">Importer la liste de la classe ${d.classeId}</p>
+    <label class="import-zone">
+      <span>${d.importing ? '⏳' : '⬆'}</span>
+      <span style="font-size:13.5px">${d.importing ? 'Analyse du fichier en cours…' : 'Importer la liste de classe (PDF)'}</span>
+      <input type="file" accept="application/pdf" data-action="importListe" ${d.importing ? 'disabled' : ''} />
+    </label>
+    ${d.eleves.length > 0 ? `<p class="section-label">Élèves et codes de liaison</p>${eleves}` : ''}
+  `;
+}
+
+function classesAvecEleves() { return state.direction.classes.filter((c) => c.nbEleves > 0); }
+
+function notesTabHTML() {
+  const d = state.direction;
+  if (classesAvecEleves().length === 0) return `<p class="section-label">Classe</p><div class="empty-state">Importez d'abord au moins une liste de classe.</div>`;
+  const options = classesAvecEleves().map((c) => `<option value="${c.id}" ${d.classeId === c.id ? 'selected' : ''}>${c.label} — ${c.nbEleves} élève(s)</option>`).join('');
+  const pills = ['T1', 'T2', 'T3'].map((p) => `<button class="pill ${d.periode === p ? 'pill-active' : ''}" style="flex:1;text-align:center" data-action="setPeriodeDirection" data-p="${p}">${p}</button>`).join('');
+  const apercu = d.notesSummary.map((e) => `
+    <div class="list-item">
+      <p style="margin:0;font-size:13px;flex:1">${escapeHtml(e.prenom)} ${escapeHtml(e.nom)}</p>
+      <p style="margin:0;font-size:13px;font-weight:600">${e.moyenne !== null ? e.moyenne.toFixed(1) + '/20' : '—'}</p>
+    </div>`).join('');
+  return `
+    <p class="section-label">Classe</p>
+    <select class="input" data-action="setClasseDirectionNotes">${options}</select>
+    <p class="section-label">Trimestre</p>
+    <div style="display:flex;gap:8px;margin-bottom:16px">${pills}</div>
+    <label class="import-zone">
+      <span>${d.importing ? '⏳' : '⬆'}</span>
+      <span style="font-size:13.5px">${d.importing ? 'Analyse du fichier en cours…' : `Importer les notes ${d.periode} (PDF)`}</span>
+      <input type="file" accept="application/pdf" data-action="importNotes" ${d.importing ? 'disabled' : ''} />
+    </label>
+    <p class="section-label">Aperçu des moyennes</p>
+    ${apercu || '<div class="empty-state">Aucune note importée pour ce trimestre.</div>'}
+  `;
+}
+
+function presencesTabHTML() {
+  const d = state.direction;
+  if (classesAvecEleves().length === 0) return `<p class="section-label">Classe</p><div class="empty-state">Importez d'abord au moins une liste de classe.</div>`;
+  const options = classesAvecEleves().map((c) => `<option value="${c.id}" ${d.classeId === c.id ? 'selected' : ''}>${c.label} — ${c.nbEleves} élève(s)</option>`).join('');
+  const apercu = d.presencesSummary.map((e) => `
+    <div class="list-item">
+      <p style="margin:0;font-size:13px;flex:1">${escapeHtml(e.prenom)} ${escapeHtml(e.nom)}</p>
+      <p style="margin:0;font-size:13px;font-weight:600">${e.taux !== null ? e.taux + '%' : '—'}</p>
+    </div>`).join('');
+  return `
+    <p class="section-label">Classe</p>
+    <select class="input" data-action="setClasseDirectionPresences">${options}</select>
+    <p class="section-label">Mois</p>
+    <input class="input" id="moisInput" value="${escapeHtml(d.mois)}" placeholder="Septembre 2026" data-action="setMois" />
+    <label class="import-zone">
+      <span>${d.importing ? '⏳' : '⬆'}</span>
+      <span style="font-size:13.5px">${d.importing ? 'Analyse du fichier en cours…' : 'Importer les présences (PDF)'}</span>
+      <input type="file" accept="application/pdf" data-action="importPresences" ${d.importing ? 'disabled' : ''} />
+    </label>
+    <p class="section-label">Aperçu des taux de présence</p>
+    ${apercu || '<div class="empty-state">Aucune présence importée pour ce mois.</div>'}
+  `;
+}
+
+function evenementsTabHTML() {
+  const d = state.direction;
+  const typeOptions = EVENT_TYPES.map((t) => `<option value="${t.id}" ${fc('evtType', 'devoir') === t.id ? 'selected' : ''}>${t.label}</option>`).join('');
+  return `
+    <p class="section-label">Ajouter un événement</p>
+    <input class="input" id="evtTitre" value="${escapeHtml(fc('evtTitre'))}" placeholder="Titre — ex. Devoir surveillé de sciences" />
+    <select class="input" id="evtType">${typeOptions}</select>
+    <div style="display:flex;gap:8px">
+      <input class="input" id="evtDate" value="${escapeHtml(fc('evtDate'))}" placeholder="Date — ex. 12 sept." />
+      <input class="input" id="evtHeure" value="${escapeHtml(fc('evtHeure'))}" placeholder="Heure — ex. 14h00" />
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="evtConfirmable" ${fc('evtConfirmable', false) ? 'checked' : ''} /> Demander une confirmation de présence aux parents</label>
+    <button class="btn-primary" data-action="ajouterEvenement">＋ Ajouter l'événement</button>
+
+    <p class="section-label" style="margin-top:20px">Événements programmés</p>
+    ${d.evenements.length === 0 ? '<div class="empty-state">Aucun événement pour le moment.</div>' : d.evenements.map((e) => `
+      <div class="evt-row">
+        <div style="flex:1"><p style="margin:0;font-size:13px;font-weight:500">${escapeHtml(e.titre)}</p><p style="margin:0;font-size:11.5px;color:var(--muted)">${escapeHtml(e.date)} · ${escapeHtml(e.heure)}</p></div>
+        <button class="icon-btn" data-action="supprimerEvenement" data-id="${e.id}">🗑</button>
+      </div>`).join('')}
+  `;
+}
+
+// ---------- Chargement des données (direction) ----------
+async function chargerDirectionClasses() { await chargerClassesAvecCompteurs(); }
+async function chargerDirectionEleves() { state.direction.eleves = await chargerElevesClasse(state.direction.classeId); }
+async function chargerDirectionNotesSummary() {
+  const eleves = await chargerElevesClasse(state.direction.classeId);
+  state.direction.notesSummary = await chargerNotesClasse(state.direction.classeId, state.direction.periode, eleves);
+}
+async function chargerDirectionPresencesSummary() {
+  const eleves = await chargerElevesClasse(state.direction.classeId);
+  state.direction.presencesSummary = await chargerPresencesClasse(state.direction.classeId, state.direction.mois, eleves);
+}
+async function chargerDirectionEvenements() { state.direction.evenements = await chargerEvenements(); }
+
+// ---------- Chargement des données (parent) ----------
+async function chargerDonneesParentEnfant() {
+  const enfant = state.parent.enfants[state.enfantIndex];
+  const [notesRes, presRes, evtRes] = await Promise.all([
+    essayer(() => chargerNotesEleve(enfant.id)),
+    essayer(() => chargerDernierePresence(enfant.id)),
+    essayer(() => chargerEvenements()),
+  ]);
+  state.parentData.notes = notesRes.ok ? notesRes.data : {};
+  state.parentData.presences = presRes.ok ? presRes.data : null;
+  state.parentData.evenements = evtRes.ok ? evtRes.data : [];
+  state.parentData.periode = state.parentData.notes.T3 ? 'T3' : state.parentData.notes.T2 ? 'T2' : state.parentData.notes.T1 ? 'T1' : 'T3';
+  state.parentData.justifyingId = null;
+}
+
+// ---------- Gestionnaires d'actions (data-action) ----------
+const handlers = {
+  goto(el) {
+    syncFormCache(); state.formCache = {}; state.authError = null;
+    state.screen = el.dataset.screen;
+    render();
+  },
+
+  setAuthMode(el) { syncFormCache(); state.authMode = el.dataset.mode; state.authError = null; render(); },
+  nbEnfants(el) {
+    syncFormCache();
+    const delta = parseInt(el.dataset.delta, 10);
+    state.nbEnfants = Math.min(5, Math.max(1, state.nbEnfants + delta));
+    render();
+  },
+
+  async submitInscription() {
+    syncFormCache();
+    const nom = fc('parNom'), prenom = fc('parPrenom'), telephone = fc('parTelephone');
+    const motDePasse = fc('parMotDePasse');
+    const codes = [];
+    for (let i = 0; i < state.nbEnfants; i++) codes.push(fc(`code-${i}`));
+    if (!nom.trim() || !prenom.trim() || telephone.replace(/\D/g, '').length < 6) { state.authError = 'Renseignez votre nom, prénom et numéro de téléphone.'; render(); return; }
+    if (motDePasse.length < 6) { state.authError = 'Le mot de passe doit contenir au moins 6 caractères.'; render(); return; }
+    if (codes.some((c) => !c.trim())) { state.authError = "Renseignez le code de liaison de chaque enfant."; render(); return; }
+    const r = await essayer(() => inscrireParentAuth(motDePasse, nom.trim(), prenom.trim(), telephone.trim(), codes));
+    if (!r.ok) { state.authError = r.erreur; render(); return; }
+    state.parent = r.data; state.enfantIndex = 0; state.parentTab = 'accueil'; state.formCache = {}; state.authError = null;
+    await chargerDonneesParentEnfant();
+    state.screen = 'parent-app';
+    render();
+  },
+
+  async submitConnexion() {
+    syncFormCache();
+    const r = await essayer(() => connecterParentAuth(fc('parTelephoneConnexion'), fc('parMotDePasseConnexion')));
+    if (!r.ok) { state.authError = r.erreur; render(); return; }
+    state.parent = r.data; state.enfantIndex = 0; state.parentTab = 'accueil'; state.formCache = {}; state.authError = null;
+    await chargerDonneesParentEnfant();
+    state.screen = 'parent-app';
+    render();
+  },
+
+  async submitConnexionDirection() {
+    syncFormCache();
+    const r = await essayer(() => connecterDirectionAuth(fc('dirEmail'), fc('dirMotDePasse')));
+    if (!r.ok) { state.authError = r.erreur; render(); return; }
+    state.formCache = {}; state.authError = null;
+    await chargerDirectionClasses();
+    await Promise.all([chargerDirectionEleves(), chargerDirectionEvenements()]);
+    state.screen = 'direction';
+    render();
+  },
+
+  quitParent() { auth.signOut(); state.parent = null; state.screen = 'landing'; state.formCache = {}; render(); },
+  quitDirection() { auth.signOut(); state.screen = 'landing'; state.formCache = {}; render(); },
+
+  async switchEnfant(el) {
+    state.enfantIndex = parseInt(el.dataset.index, 10);
+    await chargerDonneesParentEnfant();
+    render();
+  },
+
+  parentTab(el) { state.parentTab = el.dataset.tab; render(); },
+
+  setPeriodeParent(el) {
+    state.parentData.periode = el.dataset.p;
+    render();
+  },
+
+  justifierOuvrir(el) { syncFormCache(); state.parentData.justifyingId = el.dataset.jour; render(); },
+  justifierAnnuler() { syncFormCache(); state.parentData.justifyingId = null; state.formCache.motifTexte = ''; render(); },
+
+  async justifierEnvoyer(el) {
+    syncFormCache();
+    const motif = fc('motifTexte');
+    if (motif.trim().length < 3) return;
+    const enfant = state.parent.enfants[state.enfantIndex];
+    const r = await essayer(() => justifierAbsence(enfant.id, state.parentData.presences.mois, el.dataset.jour, motif.trim()));
+    if (!r.ok) { alert(r.erreur); return; }
+    state.formCache.motifTexte = '';
+    await chargerDonneesParentEnfant();
+    render();
+  },
+
+  async confirmerEvenement(el) {
+    const id = el.dataset.id;
+    const r = await essayer(() => confirmerEvenementDb(id, state.parent.id));
+    if (r.ok) state.parentData.confirmedEvents.add(id);
+    render();
+  },
+
+  // ---- Direction ----
+  async setDTab(el) {
+    state.direction.dTab = el.dataset.tab;
+    if (state.direction.dTab === 'classes') await chargerDirectionEleves();
+    if (state.direction.dTab === 'notes') await chargerDirectionNotesSummary();
+    if (state.direction.dTab === 'presences') await chargerDirectionPresencesSummary();
+    if (state.direction.dTab === 'evenements') await chargerDirectionEvenements();
+    render();
+  },
+  async selectClasse(el) { state.direction.classeId = el.dataset.id; await chargerDirectionEleves(); render(); },
+  async setClasseDirectionNotes(el) { state.direction.classeId = el.value; await chargerDirectionNotesSummary(); render(); },
+  async setClasseDirectionPresences(el) { state.direction.classeId = el.value; await chargerDirectionPresencesSummary(); render(); },
+  async setPeriodeDirection(el) { state.direction.periode = el.dataset.p; await chargerDirectionNotesSummary(); render(); },
+  setMois(el) { state.direction.mois = el.value; },
+
+  async importListe(el) {
+    const file = el.files[0]; if (!file) return;
+    state.direction.importing = true; render();
+    const r = await essayer(async () => {
+      const texte = await extraireTextePdf(file);
+      const lignes = parseListeClasse(texte);
+      if (lignes.length === 0) throw new Error(`Aucune ligne reconnue. Extrait de ce que le site a lu dans le PDF : « ${texte.replace(/\s+/g, ' ').trim().slice(0, 180)} »`);
+      const tous = await chargerTousLesEleves();
+      const codesUtilises = new Set(tous.map((e) => e.code));
+      let compte = 0;
+      for (const l of lignes) {
+        const code = genererCode(l.nom, codesUtilises);
+        await db.collection('eleves').add({ nom: l.nom, prenom: l.prenom, code, classeId: state.direction.classeId });
+        compte += 1;
+      }
+      return compte;
+    });
+    state.direction.importing = false;
+    if (!r.ok) { state.direction.notif = r.erreur; render(); return; }
+    state.direction.notif = `${r.data} élève(s) importé(s) depuis « ${file.name} ».`;
+    await Promise.all([chargerDirectionEleves(), chargerDirectionClasses()]);
+    render();
+    setTimeout(() => { state.direction.notif = ''; render(); }, 4500);
+  },
+
+  async importNotes(el) {
+    const file = el.files[0]; if (!file) return;
+    state.direction.importing = true; render();
+    const periode = state.direction.periode;
+    const r = await essayer(async () => {
+      const eleves = await chargerElevesClasse(state.direction.classeId);
+      const texte = await extraireTextePdf(file);
+      const { matches, nonTrouves } = parseNotes(texte, eleves);
+      if (matches.length === 0) throw new Error(`Aucune ligne reconnue. Extrait de ce que le site a lu dans le PDF : « ${texte.replace(/\s+/g, ' ').trim().slice(0, 180)} »`);
+      const parEleve = {};
+      for (const m of matches) {
+        if (!parEleve[m.eleveId]) parEleve[m.eleveId] = [];
+        parEleve[m.eleveId].push({ matiere: m.matiere, note: m.note, coef: m.coefficient });
+      }
+      let compte = 0;
+      for (const eleveId of Object.keys(parEleve)) {
+        await db.collection('notes').doc(`${eleveId}_${periode}`).set({ eleveId, trimestre: periode, matieres: parEleve[eleveId] });
+        compte += parEleve[eleveId].length;
+      }
+      // Calcule et enregistre le rang de chaque élève directement dans son
+      // propre dossier de notes, pour que chaque parent voie son classement
+      // sans avoir besoin de lire les notes des autres élèves.
+      const classement = (await chargerNotesClasse(state.direction.classeId, periode, eleves))
+        .filter((e) => e.moyenne !== null)
+        .sort((a, b) => b.moyenne - a.moyenne);
+      for (let i = 0; i < classement.length; i++) {
+        await db.collection('notes').doc(`${classement[i].id}_${periode}`).update({ rang: i + 1, totalClasse: classement.length });
+      }
+      return { compte, nonTrouves };
+    });
+    state.direction.importing = false;
+    if (!r.ok) { state.direction.notif = r.erreur; render(); return; }
+    const avert = r.data.nonTrouves.length ? ` (${r.data.nonTrouves.length} ligne(s) non reconnue(s) : ${r.data.nonTrouves.slice(0, 5).join(' / ')}${r.data.nonTrouves.length > 5 ? '…' : ''})` : '';
+    state.direction.notif = `Notes ${periode} importées pour ${r.data.compte} ligne(s)${avert}.`;
+    await chargerDirectionNotesSummary();
+    render();
+    setTimeout(() => { state.direction.notif = ''; render(); }, 7000);
+  },
+
+  async importPresences(el) {
+    const file = el.files[0]; if (!file) return;
+    const moisSaisi = document.getElementById('moisInput')?.value;
+    if (moisSaisi) state.direction.mois = moisSaisi;
+    const mois = state.direction.mois;
+    state.direction.importing = true; render();
+    const r = await essayer(async () => {
+      const eleves = await chargerElevesClasse(state.direction.classeId);
+      const texte = await extraireTextePdf(file);
+      const { matches, nonTrouves } = parsePresences(texte, eleves);
+      if (matches.length === 0) throw new Error(`Aucune ligne reconnue. Extrait de ce que le site a lu dans le PDF : « ${texte.replace(/\s+/g, ' ').trim().slice(0, 180)} »`);
+      const parEleve = {};
+      for (const m of matches) {
+        if (!parEleve[m.eleveId]) parEleve[m.eleveId] = [];
+        parEleve[m.eleveId].push({ jour: m.jour, statut: m.statut, motif: m.motif });
+      }
+      let compte = 0;
+      for (const eleveId of Object.keys(parEleve)) {
+        await db.collection('presences').doc(`${eleveId}_${mois}`).set({ eleveId, mois, jours: parEleve[eleveId], maj: Date.now() });
+        compte += parEleve[eleveId].length;
+      }
+      return { compte, nonTrouves };
+    });
+    state.direction.importing = false;
+    if (!r.ok) { state.direction.notif = r.erreur; render(); return; }
+    const avert = r.data.nonTrouves.length ? ` (${r.data.nonTrouves.length} ligne(s) non reconnue(s) : ${r.data.nonTrouves.slice(0, 5).join(' / ')}${r.data.nonTrouves.length > 5 ? '…' : ''})` : '';
+    state.direction.notif = `Présences de ${mois} importées pour ${r.data.compte} ligne(s)${avert}.`;
+    await chargerDirectionPresencesSummary();
+    render();
+    setTimeout(() => { state.direction.notif = ''; render(); }, 7000);
+  },
+
+  async ajouterEvenement() {
+    syncFormCache();
+    const titre = fc('evtTitre'), type = fc('evtType', 'devoir'), date = fc('evtDate'), heure = fc('evtHeure'), confirmable = fc('evtConfirmable', false);
+    if (!titre.trim() || !date.trim() || !heure.trim()) { state.direction.notif = "Renseignez le titre, la date et l'heure de l'événement."; render(); return; }
+    const r = await essayer(() => ajouterEvenementDb({ titre, type, date, heure, confirmable: !!confirmable }));
+    if (!r.ok) { state.direction.notif = r.erreur; render(); return; }
+    state.formCache.evtTitre = ''; state.formCache.evtDate = ''; state.formCache.evtHeure = ''; state.formCache.evtConfirmable = false;
+    await chargerDirectionEvenements();
+    render();
+  },
+  async supprimerEvenement(el) {
+    await essayer(() => supprimerEvenementDb(el.dataset.id));
+    await chargerDirectionEvenements();
+    render();
+  },
+};
+
+// ---------- Délégation d'événements ----------
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el || el.tagName === 'INPUT') return;
+  const fn = handlers[el.dataset.action];
+  if (fn) fn(el, e);
+});
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const fn = handlers[el.dataset.action];
+  if (fn) fn(el, e);
+});
+
+// ---------- Démarrage : restauration de la session si l'utilisateur est déjà connecté ----------
+render(); // affichage immédiat de l'écran d'accueil, remplacé ci-dessous si une session existe
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) return;
+  const parentDoc = await db.collection('parents').doc(user.uid).get();
+  if (parentDoc.exists) {
+    const data = parentDoc.data();
+    const enfants = await resoudreEnfants(data.enfantIds);
+    state.parent = { id: user.uid, nom: data.nom, prenom: data.prenom, telephone: data.telephone, enfants };
+    state.enfantIndex = 0; state.parentTab = 'accueil'; state.screen = 'parent-app';
+    await chargerDonneesParentEnfant();
+    render();
+  } else {
+    // Pas de profil parent : on tente l'espace direction (les règles Firestore
+    // décideront si ce compte a réellement les droits d'y écrire).
+    const r = await essayer(async () => {
+      await chargerDirectionClasses();
+      await Promise.all([chargerDirectionEleves(), chargerDirectionEvenements()]);
+    });
+    if (r.ok) { state.screen = 'direction'; render(); }
+  }
+});
+
+  </script>
+</body>
+</html>
